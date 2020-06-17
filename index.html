@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta name="registro" content="width=device-width, initial-scale=1" charset="UTF-8">
+	<title>Registro Control Acceso</title>
+	<link rel="stylesheet" href="styles_index.css">
+</head>
+
+<body id="body" onclick="fullscreen()">
+	<div class="bg">
+		<img src="base.jpg" style="background: url('base.jpg') no-repeat top center;
+	background-size: cover;
+	width: 100%;">
+		<div class="wrapper">
+			<div class="input-fields">
+				<button class="btn" onclick="leerDatos()">Leer documento</button>
+
+				<div class="btn" onclick="nuevoRegistro()">nuevo registro</div>
+
+				<input class="text-fields" type="text" id="documento" value="" disabled>
+
+				<input class="text-fields" type="text" id="correcto" value="" disabled>
+				<input class="text-fields" style="font-size: 40px;" type="text" id="nombre" value="" disabled>
+			</div>
+
+		</div>
+	</div>
+
+	<script>
+
+		function gid(ID) { return document.getElementById(ID) }
+
+		function fullscreen() {
+			let elem = gid('body');
+
+			if (elem.requestFullscreen) {
+				elem.requestFullscreen();
+			} else if (elem.mozRequestFullScreen) { /* Firefox */
+				elem.mozRequestFullScreen();
+			} else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+				elem.webkitRequestFullscreen();
+			} else if (elem.msRequestFullscreen) { /* IE/Edge */
+				elem.msRequestFullscreen();
+			}
+		}
+		function leerDatos() {
+			let url = '/api/';
+			// Pedir datos a servidor sobre OCR
+			async function getOCR() {
+				let data = { op: "readOCR" }; // Petición por protocolo
+
+				let response = await fetch(url, {
+					method: 'POST',
+					body: JSON.stringify(data), // transforma la peticion en JSON
+					headers: {
+						'Content-Type': 'application/json' // especifico que el contenido es JSON
+					}
+				});
+				let cliente = await response.json(); // Guarda en cliente el JSON devuelto por API
+				console.log(cliente);
+
+				if (cliente.status == "error") alert("Lectura incorrecta, intentelo de nuevo");
+				else {
+					// Comprobar prohibidos mediante petición a API
+					let data = {
+						documento: cliente.documento,
+						op: "statusDocument"
+					};
+
+					let response = await fetch(url, {
+						method: 'POST',
+						body: JSON.stringify(data),
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					});
+					let statusDocument = await response.json();
+					console.log(statusDocument);
+
+					// si prohibido entonces documuento en rojo:
+
+					if (statusDocument.status == "prohibido") {
+						gid('documento').setAttribute('style', 'color: red;');
+						gid('documento').value = cliente.documento;
+					}
+					// si no está prohibido 
+					// Recoger datos Nombre y Documento en variables
+					else {
+						gid('correcto').value = "Bienvenido:"
+						gid('documento').value = cliente.documento;
+						gid('nombre').value = cliente.nombre;
+					}
+					// Aquí borra los datos de pantalla tras X ms
+
+					console.log("Datos documentación cargados correctamente");
+					setTimeout(function () {
+						gid('documento').value = "";
+						gid('correcto').value = ""
+						gid('nombre').value = "";
+						gid('documento').removeAttribute('style');
+
+					}, 5000); // ms para borrar datos
+				}
+			}
+
+
+			getOCR();
+
+		}
+		function nuevoRegistro() {
+			window.location.href = 'registro.html';
+		}
+	</script>
+
+</body>
+
+</html>

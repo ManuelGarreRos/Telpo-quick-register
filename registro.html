@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Registro Control Acceso</title>
+    <link rel="stylesheet" href="styles_registro.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+</head>
+
+<body>
+    <div class="bg">
+        <img src="base.jpg" style="background: url('base.jpg') no-repeat top center;
+	background-size: cover;
+	width: 100%;">
+        <div class="wrapper">
+            <div style="width: 10%; border: 0px; padding-left: 40px">
+                <img style="width: 100%; padding-top: 0px;" src="back.png" alt="" onclick="back()">
+            </div>
+            <div class="contact-form" style="padding-top: 10px;">
+                <div style="display: flex;
+            flex-direction: column;
+            margin-right: 1%;
+            margin-left: 1%;">
+                    <h3 class="text">Nombre:</h3>
+                    <h3 class="text">Apellidos:</h3>
+                    <h3 class="text">DNI/NIE/PASS:</h3>
+                    <h3 class="text">FECHA:</h3>
+                    <h3 class="text">SEXO:</h3>
+                    <h3 class="text">CODIGO POSTAL:</h3>
+                    <h3 class="text">DIRECCIÓN:</h3>
+                    <h3 class="text">LOCALIDAD:</h3>
+                </div>
+                <div class="input-fields">
+                    <input onfocusout="quitarBorde('nombre')" type="text" class="input"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" id="nombre"
+                        placeholder="">
+                    <input onfocusout="quitarBorde('apellidos')" type="text" class="input"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" id="apellidos"
+                        placeholder="">
+                    <input onfocusout="quitarBorde('documento')" type="text" class="input"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" id="documento"
+                        placeholder="">
+                    <input onfocusout="quitarBorde('fecha')" type="date" class="input"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" id="fecha">
+                    <select onfocusout="quitarBorde('sexo')" class="input" name="Sexo"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" id="sexo">
+                        <option value="hombre">Hombre</option>
+                        <option value="mujer">Mujer</option>
+                    </select>
+                    <input onfocusout="quitarBorde('postal')" type="number" class="input" id="postal"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" placeholder="">
+                    <input onfocusout="quitarBorde('direccion')" type="text" class="input" id="direccion"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" placeholder="">
+                    <input onfocusout="quitarBorde('localidad')" type="text" class="input" id="localidad"
+                        style="background-color: rgba(255, 255, 255, 0.1); border: 1px solid #c5ecfd;" placeholder="">
+                </div>
+                <div class="input-fields">
+                    <button class="btn" onclick="leerDatos()">Leer documento</button>
+                    <p>
+                        <center> <img id="huella" src="huellastop.jpg" height="80" alt=""> </center>
+                    </p>
+                    <button class="btn" onclick="obtenerHuella()" id="obtenerHuella">Obtener huella</button>
+
+                    <center> <img height="80" src="" alt="" id="captura"> </center>
+                    <div class="btn" onclick="seleccionar()" id="capturar">CAPTURAR</div>
+                    <input class="btn" onchange="capturarImg(this.files)" type="file" accept="image/*" id="foto"
+                        style="display: none;" capture>
+
+                    <center>
+                        <h3 class="text">
+                            <input onclick="lopd()" type="checkbox" name="lopd" id="lopd">
+                            He leído y aceptado la política de privacidad.
+                        </h3>
+                    </center>
+
+
+
+                    <div class="btn" onclick="enviar()">ENVIAR</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let huellaCompletada = false;
+        let formularioCompletado = false;
+        let capturaCompletada = false;
+        let check = false;
+        const url = '/api/';
+
+        function gid(ID) { return document.getElementById(ID) }
+
+        function quitarBorde(ID) {
+            if (gid(`${ID}`).value != "") {
+                gid(`${ID}`).style = 'border: 0px;';
+            }
+        }
+
+        // activar escritura de huella y almazenar
+        async function obtenerHuella() {
+            // Mostrar GIF de espera
+            gid('huella').src = "huella.gif"
+            // Llamar a lectura de huella
+            let data = {
+                op: "readFingerprint"
+            };
+
+            let response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            let fingerprint = await response.json();
+            window.huella = fingerprint.value;
+            console.log(fingerprint);
+            // Si lectura incorrecta
+            if (fingerprint.value == "error") {
+                gid('huella').src = "huellamal.jpg";
+                Swal.fire({
+                    text: 'Lectura de huella incorrecta correcta',
+                    icon: 'error'
+                });
+                //alert("Lectura de huella incorrecta, vuelva a intentarlo");
+            }
+            // Si lectura correcta mostrar huella tomada correctamente
+            else {
+                gid('huella').src = "huellaok.jpg";
+                Swal.fire({
+                    text: 'Lectura de huella correcta',
+                    icon: 'success',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    onOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+                // alert("Lectura de huella correcta");
+                huellaCompletada = true;
+                console.log("Huella tomada");
+                gid('obtenerHuella').setAttribute('style', 'display: none');
+
+            }
+        }
+        function mostrarCliente(cliente) {
+
+            // Quitar atributo status del objeto
+            delete cliente.status;
+            console.log(cliente);
+            window.cliente = cliente;
+
+            for (const propiedad in cliente) {
+                gid(propiedad).value = `${cliente[propiedad]}`;
+                gid(propiedad).style = 'border: 0px;';
+            }
+
+            console.log("Datos documentación cargados correctamente");
+
+            comprobarDatos();
+        }
+
+        function leerDatos() {
+
+            // Pedir datos a servidor sobre OCR
+            async function getOCR() {
+                var data = { op: "readOCR" }; // Petición por protocolo
+
+                let response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data), // transforma la peticion en JSON
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                let cliente = await response.json(); // Guarda en cliente el JSON devuelto por API
+                if (cliente.status == "error") Swal.fire({
+                    text: 'Lectura incorrecta, intentelo de nuevo',
+                    icon: 'error'
+                });
+                //alert("Lectura incorrecta, intentelo de nuevo");
+                else mostrarCliente(cliente);
+            }
+            getOCR();
+
+        }
+
+        async function comprobarDatos() {
+            let data = {
+                documento: gid('documento').src,
+                op: "statusDocument"
+            };
+
+            let response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            let statusDocument = await response.json();
+            console.log(statusDocument);
+
+            let fecha = +new Date(gid('fecha').value);
+            let edad = (Date.now() - fecha) / (31557600000);
+            console.log('La edad es: ' + edad);
+
+            if (statusDocument.status == "prohibido") {
+                Swal.fire({
+                    text: 'Documento no autorizado!',
+                    icon: 'error'
+                });
+                //alert("Documento no autorizado!");
+                console.log("Documento prohibido");
+            }
+            else if (statusDocument.status == "registrado") {
+                Swal.fire({
+                    text: 'Documento ya registrado',
+                    icon: 'error'
+                });
+                //alert("Documento ya registrado");
+                console.log("Documento ya registrado");
+            }
+            else if (gid('nombre').value == "") Swal.fire({
+                text: 'Nombre incompleto',
+                icon: 'error'
+            }); //alert("Nombre incompleto");
+            else if (gid('apellidos').value == "") Swal.fire({
+                text: 'Apellidos incompletos',
+                icon: 'error'
+            }); //alert("Apellidos incompleto");
+            else if (gid('documento').value == "") Swal.fire({
+                text: 'Documentación incompleta',
+                icon: 'error'
+            }); //alert("Documentación incompleta");
+            else if (gid('fecha').value == "") Swal.fire({
+                text: 'Fecha incompleta',
+                icon: 'error'
+            }); //alert("Fecha incompleta");
+            else if (edad < 18) Swal.fire({
+                text: '¡¡ Menor de edad !!',
+                icon: 'error'
+            }); //alert("Menor de Edad !!");
+            else {
+                formularioCompletado = true;
+                console.log("Documento correcto");
+            }
+        }
+
+        function seleccionar() {
+            var evt = document.createEvent("MouseEvents");
+            evt.initEvent("click", true, false);
+            gid("foto").dispatchEvent(evt);
+        }
+
+        function capturarImg(photo) {
+            let intentos = 0;
+            async function comprobarCaptura(photo64) {
+                let data = {
+                    op: "readPhoto",
+                    photo: photo64
+                };
+
+                let response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                let captura = await response.json();
+                console.log(captura);
+                if (captura.status == 'error') {
+                    intentos++;
+                    Swal.fire({
+                        text: 'Captura incorrecta, vuelve a intentarlo',
+                        icon: 'error'
+                    }); //alert("Captura incorrecta, vuelve a intentarlo");
+                }
+                else {
+                    document.getElementById('captura').src = window.URL.createObjectURL(photo[intentos]);
+                    console.log("captura completa");
+                    capturaCompletada = true;
+                    gid('capturar').setAttribute('style', 'display: none');
+                    gid('foto').setAttribute('style', 'display: none');
+                }
+            }
+
+            //Convertir el blob en Base64 para pasar por API            
+            let reader = new FileReader();
+            reader.readAsDataURL(photo[intentos]);
+            reader.onloadend = function () {
+                let base64photo = reader.result;
+                console.log('Imagen convertida en Base64: ')
+                window.base64 = base64photo;
+                comprobarCaptura(base64photo);
+            }
+
+        }
+        function back() {
+            console.log("atras");
+            window.location.href = 'index.html';
+        }
+
+        function lopd() {
+            check = gid('lopd').checked;
+            console.log('ley de protección de datos: ' + check);
+        }
+
+        async function enviarDatos() {
+            let data = {
+                op: "registry",
+                nombre: gid('nombre').value,
+                apellidos: gid('apellidos').value,
+                documento: gid('documento').value,
+                fecha: gid('fecha').value,
+                sexo: gid('sexo').value,
+                codigo: gid('postal').value,
+                direccion: gid('direccion').value,
+                localidad: gid('localidad').value,
+                fingerprint: huella,
+                photo: base64
+            };
+            console.log(data);
+            let response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            let datosEnviados = await response.json();
+            console.log('status del envio: ' + datosEnviados.status);
+            if (datosEnviados.status == "error") Swal.fire({
+                text: 'Fallo en el envío, reintentar',
+                icon: 'error'
+            }); //alert("Fallo en el envío, reintentar");
+            else {
+                console.log("Enviado");
+                Swal.fire({
+                    text: 'Registro completo',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    
+                });
+                //alert("Registro completado");
+                setTimeout(function(){window.location.href = '/index.html';},3000);
+                
+            }
+
+        }
+
+        function enviar() {
+            // enviar los datos
+            if (formularioCompletado && huellaCompletada && capturaCompletada && check) {
+                enviarDatos();
+            }
+            else if (huellaCompletada && capturaCompletada && check) {
+                comprobarDatos();
+                if (formularioCompletado) {
+                    enviarDatos();
+                }
+            }
+            else Swal.fire({
+                text: 'Registro incompleto',
+                icon: 'error'
+            }); //alert("Registro incompleto.")
+        }
+    </script>
+
+
+</body>
+
+</html>
